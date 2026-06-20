@@ -1,0 +1,58 @@
+<ng-container *ngIf="showShell(); else plain">
+  <div class="shell"
+       [class.collapsed]="collapsed() && !isMobile()"
+       [class.mobile-open]="mobileOpen()">
+
+    <!-- Scrim for mobile drawer -->
+    <div class="scrim" (click)="toggleMobile()"></div>
+
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <mat-icon>event_available</mat-icon>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">EMS</span>
+        </div>
+      </div>
+
+      <div class="nav-section-title">ADMIN</div>
+      <nav class="nav">
+        <a *ngFor="let n of navItems"
+           [routerLink]="n.path"
+           routerLinkActive="active"
+           class="nav-item">
+          <span class="nav-accent"></span>
+          <mat-icon>{{ n.icon }}</mat-icon>
+          <span class="nav-label">{{ n.label }}</span>
+        </a>
+      </nav>
+
+      <button class="collapse-btn" (click)="toggleCollapse()" *ngIf="!isMobile()"
+              [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+        <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+      </button>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="hamburger" (click)="toggleMobile()" aria-label="Open menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <h1 class="page-title">{{ pageTitle() }}</h1>
+        <span class="spacer"></span>
+        <a class="btn btn--ghost back-home" routerLink="/">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Home</span>
+        </a>
+      </header>
+      <main class="content">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #plain>
+  <router-outlet></router-outlet>
+</ng-template>

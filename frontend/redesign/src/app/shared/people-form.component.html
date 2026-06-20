@@ -1,0 +1,171 @@
+<div class="page">
+  <app-loading-overlay [show]="loading"></app-loading-overlay>
+
+  <header class="page-head">
+    <div>
+      <h2>{{ label }}s</h2>
+      <p class="sub">Manage {{ label.toLowerCase() }} profiles and their sector availability.</p>
+    </div>
+    <button class="btn btn--primary" (click)="openDrawer()">
+      <mat-icon>person_add</mat-icon> Add {{ label }}
+    </button>
+  </header>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-bar">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        placeholder="Search by name or mobile"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+    <div class="sector-pills">
+      <button class="sector-toggle"
+              [class.active]="sectorFilter() === ''"
+              (click)="sectorFilter.set('')">All</button>
+      <button *ngFor="let s of sectors"
+              class="sector-toggle"
+              [class.active]="sectorFilter() === s"
+              (click)="sectorFilter.set(s)">
+        <mat-icon>{{ sectorIcons[s] }}</mat-icon>
+        <span>{{ s }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Card grid -->
+  <div class="people-grid">
+    <article *ngFor="let p of filtered()" class="person-card hoverable">
+      <header class="card-top">
+        <span class="avatar" [style.background]="avatarHue(p.name)">{{ initials(p.name) }}</span>
+        <div class="actions">
+          <button class="btn btn--ghost btn--icon btn--danger"
+                  [class.shake]="confirmDeleteId() === p.id"
+                  (click)="askDelete(p.id)" title="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </header>
+      <div class="name">{{ p.name }}</div>
+      <div class="mobile">
+        <mat-icon>phone</mat-icon> {{ p.mobile }}
+      </div>
+      <div class="sector-list">
+        <span *ngFor="let a of p.availability"
+              class="sector-badge"
+              [ngClass]="'sector-badge--' + sectorSlug(a.sector)">
+          {{ a.sector }} · {{ formatAvailabilityDate(a.availableDate) }} · {{ a.start }}–{{ a.end }}
+        </span>
+      </div>
+    </article>
+
+    <div *ngIf="filtered().length === 0" class="empty-state">
+      <mat-icon>inbox</mat-icon>
+      <p>No {{ label.toLowerCase() }}s match the current filters.</p>
+    </div>
+  </div>
+
+  <!-- Drawer -->
+  <ng-container *ngIf="drawerOpen()">
+    <div @scrim class="drawer-scrim" (click)="closeDrawer()"></div>
+    <aside @drawerSlide class="drawer">
+      <header class="drawer-head">
+        <h3>Add {{ label }}</h3>
+        <button class="btn btn--ghost btn--icon" (click)="closeDrawer()" aria-label="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </header>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="drawer-body">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ label }} name</mat-label>
+          <input matInput formControlName="name" />
+          <mat-error *ngIf="isControlInvalid(form, 'name', 'required')">{{ label }} name is required</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Mobile</mat-label>
+          <input matInput formControlName="mobile" />
+          <mat-error *ngIf="isControlInvalid(form, 'mobile', 'required')">Mobile is required</mat-error>
+          <mat-error *ngIf="form.get('mobile')?.hasError('pattern')">Invalid phone number</mat-error>
+        </mat-form-field>
+
+        <h4>Sector availability</h4>
+        <div formArrayName="availability" class="rows">
+          <div *ngFor="let row of availability.controls; let i = index"
+               [formGroupName]="i" class="row">
+            <div class="row-line">
+              <span class="row-num">{{ i + 1 }}</span>
+              <span class="spacer"></span>
+              <button class="btn btn--ghost btn--icon danger"
+                      type="button"
+                      (click)="removeRow(i)"
+                      [disabled]="availability.length <= 1">
+                <mat-icon>remove_circle_outline</mat-icon>
+              </button>
+            </div>
+
+            <div class="chip-toggle-row">
+              <button *ngFor="let s of sectors"
+                      type="button"
+                      class="sector-toggle small"
+                      [class.active]="rowGroup(i).value.sector === s"
+                      (click)="toggleSectorInRow(i, s)">
+                <mat-icon>{{ sectorIcons[s] }}</mat-icon>
+                <span>{{ s }}</span>
+              </button>
+            </div>
+            <div class="field-error" *ngIf="isControlInvalid(rowGroup(i), 'sector', 'required')">
+              Choose a sector for this row.
+            </div>
+
+            <div class="row-flex">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Date</mat-label>
+                <input matInput [matDatepicker]="pickerStart" formControlName="startDate">
+                <mat-datepicker-toggle matSuffix [for]="pickerStart"></mat-datepicker-toggle>
+                <mat-datepicker #pickerStart></mat-datepicker>
+                <mat-error *ngIf="isControlInvalid(rowGroup(i), 'startDate', 'required')">Date is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="row-flex">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Start time</mat-label>
+                <mat-select formControlName="start">
+                  <mat-option *ngFor="let h of hours" [value]="h">{{ h }}</mat-option>
+                </mat-select>
+                <mat-error *ngIf="isControlInvalid(rowGroup(i), 'start', 'required')">Start time is required</mat-error>
+              </mat-form-field>
+              <mat-icon class="time-info">info</mat-icon>
+              <span class="time-note">End time is auto +1 hour</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--outline add-row" (click)="addRow()">
+          <mat-icon>add</mat-icon> Add another sector
+        </button>
+
+        <footer class="drawer-foot">
+          <button type="button" class="btn btn--ghost" (click)="closeDrawer()">Cancel</button>
+          <button type="submit" class="btn btn--primary">
+            <mat-icon>save</mat-icon> Save {{ label }}
+          </button>
+        </footer>
+      </form>
+    </aside>
+  </ng-container>
+
+  <!-- Delete confirm -->
+  <div *ngIf="confirmDeleteId()" class="confirm-bar">
+    <mat-icon>warning</mat-icon>
+    <span>Delete this {{ label.toLowerCase() }}?</span>
+    <button class="btn btn--ghost" (click)="cancelDelete()">Cancel</button>
+    <button class="btn btn--danger" (click)="doDelete()">
+      <mat-icon>delete</mat-icon> Delete
+    </button>
+  </div>
+</div>

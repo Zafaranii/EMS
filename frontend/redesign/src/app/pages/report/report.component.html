@@ -1,0 +1,124 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h2>Analytics &amp; Report</h2>
+      <p class="sub">Real-time view of reservations across sectors, hotels, and rooms.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn btn--outline" (click)="openSsrs()">
+        <mat-icon>open_in_new</mat-icon> Open SSRS
+      </button>
+      <button class="btn btn--primary" (click)="exportCsv()">
+        <mat-icon>download</mat-icon> Export CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI cards -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-ico"><mat-icon>event</mat-icon></div>
+      <div class="kpi-num">{{ totalC() }}</div>
+      <div class="kpi-label">Total Reservations</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico amber"><mat-icon>groups</mat-icon></div>
+      <div class="kpi-num">{{ invC() }}</div>
+      <div class="kpi-label">Unique Investors</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico green"><mat-icon>meeting_room</mat-icon></div>
+      <div class="kpi-num">{{ roomsC() }}</div>
+      <div class="kpi-label">Rooms Used</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico pink"><mat-icon>trending_up</mat-icon></div>
+      <div class="kpi-num kpi-text">{{ busiestSector() }}</div>
+      <div class="kpi-label">Busiest Sector</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-row">
+    <div class="search-bar">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        placeholder="Search investor, presenter, hotel or room"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event); applyFilters()"
+      />
+    </div>
+    <div class="sector-pills">
+      <button class="sector-toggle"
+              [class.active]="sectorFilter() === ''"
+              (click)="sectorFilter.set(''); applyFilters()">All</button>
+      <button *ngFor="let s of sectors"
+              class="sector-toggle"
+              [class.active]="sectorFilter() === s"
+              (click)="sectorFilter.set(s); applyFilters()">
+        <mat-icon>{{ sectorIcons[s] }}</mat-icon>
+        <span>{{ s }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table mat-table [dataSource]="dataSource" matSort>
+        <ng-container matColumnDef="investorName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Investor</th>
+          <td mat-cell *matCellDef="let r">{{ r.investorName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="presenterName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Presenter</th>
+          <td mat-cell *matCellDef="let r">{{ r.presenterName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="sector">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Sector</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="sector-badge" [ngClass]="'sector-badge--' + sectorSlug(r.sector)">{{ r.sector }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="hotelName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Hotel</th>
+          <td mat-cell *matCellDef="let r">{{ r.hotelName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="roomName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Room</th>
+          <td mat-cell *matCellDef="let r">{{ r.roomName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="slotDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+          <td mat-cell *matCellDef="let r">{{ r.slotDate | date:'mediumDate' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="timeSlot">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Time</th>
+          <td mat-cell *matCellDef="let r">{{ r.timeSlot }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="status-badge"
+                  [ngClass]="(r.status === 'Pending') ? 'status-badge--pending' : 'status-badge--confirmed'">
+              {{ r.status || 'Confirmed' }}
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="bookedAt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Booked</th>
+          <td mat-cell *matCellDef="let r">{{ r.bookedAt | date:'short' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div *ngIf="filtered().length === 0" class="empty-state">
+      <mat-icon>assessment</mat-icon>
+      <p>No reservations to display.</p>
+    </div>
+  </div>
+</div>

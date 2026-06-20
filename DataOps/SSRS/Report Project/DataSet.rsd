@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SharedDataSet xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/shareddatasetdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <DataSet Name="DataSet1">
+    <Query>
+      <DataSourceReference>DataSource</DataSourceReference>
+      <CommandText>SELECT i.InvestorName, p.PresenterName, h.HotelName, cr.RoomName,
+CONVERT(varchar(8), rts.StartTime, 108) AS StartTime,
+CONVERT(varchar(8), rts.EndTime, 108) AS EndTime,
+s.SectorName, r.BookedAt
+FROM Reservations r
+JOIN Investors i ON i.InvestorId = r.InvestorId
+JOIN Presenters p ON p.PresenterId = r.PresenterId
+JOIN RoomTimeSlots rts ON rts.SlotId = r.SlotId
+JOIN ConferenceRooms cr ON cr.RoomId = rts.RoomId
+JOIN Hotels h ON h.HotelId = cr.HotelId
+JOIN Sectors s ON s.SectorId = r.SectorId
+ORDER BY r.BookedAt DESC</CommandText>
+    </Query>
+    <Fields>
+      <Field Name="InvestorName">
+        <DataField>InvestorName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="PresenterName">
+        <DataField>PresenterName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="HotelName">
+        <DataField>HotelName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="RoomName">
+        <DataField>RoomName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="StartTime">
+        <DataField>StartTime</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="EndTime">
+        <DataField>EndTime</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="SectorName">
+        <DataField>SectorName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="BookedAt">
+        <DataField>BookedAt</DataField>
+        <rd:TypeName>System.DateTime</rd:TypeName>
+      </Field>
+    </Fields>
+  </DataSet>
+</SharedDataSet>

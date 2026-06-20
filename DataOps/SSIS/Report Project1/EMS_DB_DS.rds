@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RptDataSource xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Name="EMS_DB_DS">
+  <ConnectionProperties>
+    <Extension>SQL</Extension>
+    <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=EMS_DB;Integrated Security=True;TrustServerCertificate=True</ConnectString>
+  </ConnectionProperties>
+  <DataSourceID>4e62a958-47cd-4373-99b2-8f8362f10eb7</DataSourceID>
+</RptDataSource>

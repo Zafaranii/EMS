@@ -1,0 +1,324 @@
+<div class="reservation-page">
+  <app-loading-overlay [show]="loading()"></app-loading-overlay>
+
+  <!-- Top bar -->
+  <header class="top">
+    <a class="btn btn--ghost back" routerLink="/" aria-label="Back to home">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Home</span>
+    </a>
+    <div class="brand">
+      <div class="brand-mark"><mat-icon>event_available</mat-icon></div>
+      <span class="brand-name">New Reservation</span>
+    </div>
+    <span class="spacer"></span>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="progress" *ngIf="!success()">
+    <div class="progress-fill" [style.width.%]="((step() - 1) / 3) * 100"></div>
+    <ol class="progress-steps">
+      <li *ngFor="let s of steps"
+          class="progress-step"
+          [class.done]="s.n < step()"
+          [class.active]="s.n === step()"
+          [class.reached]="s.n > step() && s.n <= maxStep()"
+          (click)="goTo(s.n)"
+          [title]="s.n < step() ? 'Edit: ' + s.label : ''">
+        <span class="dot">
+          <mat-icon *ngIf="s.n < step()">edit</mat-icon>
+          <ng-container *ngIf="s.n >= step()">{{ s.n }}</ng-container>
+        </span>
+        <span class="label">{{ s.label }}</span>
+      </li>
+    </ol>
+  </div>
+
+  <!-- Booking summary — chips append as you progress -->
+  <div class="booking-summary" *ngIf="!success() && step() > 1">
+    <span class="bsm-chip">
+      <mat-icon>person</mat-icon> {{ selectedInvestor()?.name }}
+    </span>
+    <ng-container *ngIf="step() > 2">
+      <mat-icon class="bsm-sep">chevron_right</mat-icon>
+      <span class="bsm-chip" [ngClass]="'sector-badge sector-badge--' + sectorSlug(selectedSector()!)">
+        <mat-icon>{{ sectorIcons[selectedSector()!] }}</mat-icon>
+        {{ selectedSector() }}
+      </span>
+      <span class="bsm-chip">
+        <mat-icon>calendar_today</mat-icon> {{ selectedDate() | date:'MMM d' }}
+      </span>
+      <span class="bsm-chip chip--brand">
+        <mat-icon>schedule</mat-icon> {{ selectedTime() }}
+      </span>
+    </ng-container>
+    <ng-container *ngIf="step() > 3">
+      <mat-icon class="bsm-sep">chevron_right</mat-icon>
+      <span class="bsm-chip">
+        <mat-icon>record_voice_over</mat-icon> {{ selectedPresenter()?.name }}
+      </span>
+    </ng-container>
+  </div>
+
+  <!-- Success screen -->
+  <section *ngIf="success() as r" class="success-wrap">
+    <div class="success-card">
+      <div class="success-check">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <h2>Reservation confirmed!</h2>
+      <p class="sub">Your booking is locked in. A copy of these details is on its way.</p>
+
+      <div class="summary">
+        <div class="row"><span>Investor</span><strong>{{ r.investorName }}</strong></div>
+        <div class="row"><span>Presenter</span><strong>{{ r.presenterName }}</strong></div>
+        <div class="row"><span>Sector</span>
+          <strong>
+            <span class="sector-badge" [ngClass]="'sector-badge--' + sectorSlug(r.sector)">
+              {{ r.sector }}
+            </span>
+          </strong>
+        </div>
+        <div class="row"><span>Hotel</span><strong>{{ r.hotelName }}</strong></div>
+        <div class="row"><span>Room</span><strong>{{ r.roomName }}</strong></div>
+        <div class="row"><span>Date &amp; Time</span>
+          <strong>
+            <span class="chip chip--brand">
+              <mat-icon>schedule</mat-icon>
+              {{ r.slotDate | date:'mediumDate' }} · {{ r.timeSlot }}
+            </span>
+          </strong>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <button class="btn btn--outline" (click)="reset()">
+          <mat-icon>add</mat-icon> Make another
+        </button>
+        <a class="btn btn--primary" routerLink="/">
+          <mat-icon>home</mat-icon> Done
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wizard body -->
+  <main class="wizard" *ngIf="!success()" [@stepSlide]="step()">
+
+    <!-- ============= STEP 1 — INVESTOR ============= -->
+    <section *ngIf="step() === 1" class="step">
+      <header class="step-head">
+        <h2>Who's the investor?</h2>
+        <p>Pick the investor for this meeting. Their sector availability drives the next step.</p>
+      </header>
+
+      <div class="search-bar">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search by name or sector"
+          [ngModel]="investorSearch()"
+          (ngModelChange)="investorSearch.set($event)"
+        />
+      </div>
+
+      <div class="card-grid">
+        <button *ngFor="let i of filteredInvestors()"
+                type="button"
+                class="person-card"
+                [class.selected]="selectedInvestor()?.id === i.id"
+                (click)="selectInvestor(i)">
+          <span class="avatar" [style.background]="avatarHue(i.name)">{{ initials(i.name) }}</span>
+          <span class="person-info">
+            <span class="name">{{ i.name }}</span>
+            <span class="mobile">{{ i.mobile }}</span>
+            <span class="sectors">
+              <span *ngFor="let s of uniqueSectors(i.availability)"
+                    class="sector-badge"
+                    [ngClass]="'sector-badge--' + sectorSlug(s)">{{ s }}</span>
+            </span>
+          </span>
+          <mat-icon class="check">check_circle</mat-icon>
+        </button>
+        <div *ngIf="filteredInvestors().length === 0" class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <p>No investors match "{{ investorSearch() }}"</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= STEP 2 — SECTOR / DATE / TIME ============= -->
+    <section *ngIf="step() === 2" class="step">
+      <header class="step-head">
+        <h2>Choose sector, date and time</h2>
+        <p>Times are matched against the room calendar by both date and hour.</p>
+      </header>
+
+      <div class="sectors-row">
+        <button *ngFor="let s of availableSectors()"
+                type="button"
+                class="sector-toggle"
+                [class.active]="selectedSector() === s"
+                (click)="selectSector(s)">
+          <mat-icon>{{ sectorIcons[s] }}</mat-icon>
+          <span>{{ s }}</span>
+        </button>
+      </div>
+
+      <div class="two-col">
+        <div class="card date-card">
+          <h3>Date</h3>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Pick a date</mat-label>
+            <input matInput [matDatepicker]="picker"
+                   [ngModel]="selectedDate()"
+                   (ngModelChange)="onDateChange($event)"
+                   [min]="null" readonly />
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker [touchUi]="false" [dateClass]="calendarDateClass" panelClass="reservation-calendar"></mat-datepicker>
+          </mat-form-field>
+          <p class="date-legend" *ngIf="selectedInvestor() && selectedSector()">
+            <span class="dot dot--available"></span> Available day
+            <span class="dot dot--unavailable"></span> No available slots
+          </p>
+        </div>
+
+        <div class="card time-card">
+          <h3>Time</h3>
+          <div *ngIf="!hasRoomConfiguration()" class="setup-alert">
+            <mat-icon>construction</mat-icon>
+            <div>
+              <strong>No rooms/slots configured yet.</strong>
+              <p>Add at least one room and one time slot from the Hotels page to enable reservation dates.</p>
+            </div>
+          </div>
+
+          <div class="slot-grid" *ngIf="hasRoomConfiguration() && selectedSector() && selectedDate(); else pickFirstTime">
+            <button *ngFor="let s of slotOptions()"
+                    type="button"
+                    class="slot-pill"
+                    [class.selected]="selectedTime() === s.time"
+                    [class.available]="s.available"
+                    [class.blocked]="!s.available"
+                    [disabled]="!s.available"
+                    (click)="selectTime(s.time, !s.available)">
+              <span class="slot-time">{{ s.time }}</span>
+              <span class="slot-meta">
+                <ng-container *ngIf="s.available; else blockedLabel">
+                  {{ s.freeRooms }}/{{ s.totalRooms }} free
+                </ng-container>
+                <ng-template #blockedLabel>
+                  {{ s.bookedRooms }}/{{ s.totalRooms }} booked
+                </ng-template>
+              </span>
+            </button>
+
+            <div *ngIf="slotOptions().length === 0" class="muted">
+              No room slots overlap this investor's availability.
+            </div>
+          </div>
+
+          <ng-template #pickFirstTime>
+            <p class="muted" *ngIf="hasRoomConfiguration()">Choose a sector and date first to show available times.</p>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= STEP 3 — PRESENTER ============= -->
+    <section *ngIf="step() === 3" class="step">
+      <header class="step-head">
+        <h2>Pick a presenter</h2>
+        <p>Filtered by sector and the time window you chose.</p>
+      </header>
+
+      <div class="card-grid">
+        <button *ngFor="let p of matchedPresenters()"
+                type="button"
+                class="person-card"
+                [class.selected]="selectedPresenter()?.id === p.id"
+                (click)="selectPresenter(p)">
+          <span class="avatar" [style.background]="avatarHue(p.name)">{{ initials(p.name) }}</span>
+          <span class="person-info">
+            <span class="name">{{ p.name }}</span>
+            <span class="mobile">{{ p.mobile }}</span>
+            <span class="sectors">
+              <span *ngFor="let s of uniqueSectors(p.availability)"
+                    class="sector-badge"
+                [ngClass]="'sector-badge--' + sectorSlug(s)">{{ s }}</span>
+            </span>
+            <span class="status-badge"
+                  [ngClass]="p.busy ? 'status-badge--pending' : 'status-badge--confirmed'">
+              {{ p.busy ? 'Busy' : 'Available' }}
+            </span>
+          </span>
+          <mat-icon class="check">check_circle</mat-icon>
+        </button>
+        <div *ngIf="matchedPresenters().length === 0" class="empty-state">
+          <mat-icon>person_off</mat-icon>
+          <p>No presenters available for this sector and time.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= STEP 4 — ROOM ============= -->
+    <section *ngIf="step() === 4" class="step">
+      <header class="step-head">
+        <h2>Pick a room</h2>
+        <p>Rooms available for <strong>{{ selectedDate() | date:'mediumDate' }}</strong> at
+          <strong>{{ selectedTime() }}</strong>.</p>
+      </header>
+
+      <div class="room-grid">
+        <button *ngFor="let r of availableRooms()"
+                type="button"
+                class="room-card"
+                [class.selected]="selectedRoom()?.slotId === r.slotId"
+                (click)="selectRoom(r)">
+          <div class="room-head">
+            <small>{{ r.hotel.name }}</small>
+            <span class="floor-badge" *ngIf="r.floor != null">Floor {{ r.floor }}</span>
+          </div>
+          <div class="room-name">{{ r.roomName }}</div>
+          <div class="room-meta">
+            <span class="chip chip--brand"><mat-icon>schedule</mat-icon> {{ r.label }}</span>
+          </div>
+          <mat-icon class="check">check_circle</mat-icon>
+        </button>
+        <div *ngIf="availableRooms().length === 0" class="empty-state">
+          <mat-icon>meeting_room</mat-icon>
+          <p>No rooms available at this date and time.</p>
+        </div>
+      </div>
+
+      <div class="summary-strip" *ngIf="selectedRoom()">
+        <span class="chip chip--brand">
+          <mat-icon>person</mat-icon> {{ selectedInvestor()?.name }}
+        </span>
+        <span class="chip">
+          <mat-icon>record_voice_over</mat-icon> {{ selectedPresenter()?.name }}
+        </span>
+        <span class="chip" *ngIf="selectedSector() as s"
+              [ngClass]="'sector-badge sector-badge--' + sectorSlug(s)">{{ s }}</span>
+        <span class="chip chip--accent">
+          <mat-icon>schedule</mat-icon>
+          {{ selectedDate() | date:'mediumDate' }} · {{ selectedTime() }}
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer nav -->
+  <footer class="wizard-foot" *ngIf="!success()">
+    <button class="btn btn--ghost" (click)="back()" [disabled]="step() === 1">
+      <mat-icon>arrow_back</mat-icon> Back
+    </button>
+    <span class="spacer"></span>
+    <button *ngIf="step() < 4" class="btn btn--primary" (click)="next()" [disabled]="!canGoNext()">
+      Continue <mat-icon>arrow_forward</mat-icon>
+    </button>
+    <button *ngIf="step() === 4" class="btn btn--primary" (click)="confirm()" [disabled]="!canGoNext() || loading()">
+      <mat-icon>check</mat-icon> Confirm Booking
+    </button>
+  </footer>
+</div>

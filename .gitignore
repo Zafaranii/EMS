@@ -1,0 +1,20 @@
+# Documentation and build artifacts
+Docs/
+docs/
+.docs/
+
+# Node.js
+node_modules/
+dist/
+.angular/
+
+# .NET
+bin/
+obj/
+.vs/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
