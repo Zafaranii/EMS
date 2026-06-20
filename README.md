@@ -246,3 +246,5 @@ npm start
 ## Demo
 
 > 📹 Videos demonstrating the full reservation flow and admin panel are included with this submission.
+  > https://youtu.be/p5DRJxGDoeA
+  > https://youtu.be/VBbfGV_c9MA
